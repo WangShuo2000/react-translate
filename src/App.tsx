@@ -31,16 +31,20 @@ export default function TranslationApp() {
   };
 
   const handleTranslate = async () => {
-    // 模拟翻译效果
     try {
-      const res = await fetch(`/api?text=${encodeURIComponent(sourceText)}&source=${sourceLang}&target=${targetLang}`, {
-        method: 'get',
+      const res = await fetch(`/api`, {
+        method: 'post',
         headers: {
           'Content-Type': 'application/json',
           'X-API-Key': 'trouvaille-translate-api-key',
           'Authorization': 'Bearer trouvaille-translate-api-key'
         },
-        credentials: 'include'
+        credentials: 'include',
+        body: JSON.stringify({
+          text: encodeURIComponent(sourceText),
+          source: sourceLang,
+          target: targetLang
+        })
       })
       const target = await res.json()
       setTranslatedText(target.response?.translated_text || '')
