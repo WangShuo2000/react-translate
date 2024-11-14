@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Globe2, ArrowLeftRight, Volume2, Copy, Check, X } from 'lucide-react';
+import { Globe2, ArrowLeftRight, Volume2, Copy, Check, X, LoaderCircle } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
 
 export default function TranslationApp() {
   const [sourceLang, setSourceLang] = useState('en');
@@ -7,14 +8,48 @@ export default function TranslationApp() {
   const [sourceText, setSourceText] = useState('');
   const [translatedText, setTranslatedText] = useState('');
   const [copied, setCopied] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const languages = [
     { code: 'en', name: 'English' },
-    { code: 'zh', name: '中文' },
-    { code: 'ja', name: '日本語' },
-    { code: 'ko', name: '한국어' },
     { code: 'es', name: 'Español' },
     { code: 'fr', name: 'Français' },
+    { code: 'de', name: 'Deutsch' },
+    { code: 'it', name: 'Italiano' },
+    { code: 'pt', name: 'Português' },
+    { code: 'nl', name: 'Nederlands' },
+    { code: 'sv', name: 'Svenska' },
+    { code: 'no', name: 'Norsk' },
+    { code: 'pl', name: 'Polski' },
+    { code: 'ru', name: 'Русский' },
+    { code: 'cs', name: 'Čeština' },
+    { code: 'ro', name: 'Română' },
+    { code: 'el', name: 'Ελληνικά' },
+    { code: 'hu', name: 'Magyar' },
+    { code: 'zh', name: '中文 (简体)' },
+    { code: 'zh-TW', name: '中文 (繁體)' },
+    { code: 'ja', name: '日本語' },
+    { code: 'ko', name: '한국어' },
+    { code: 'ar', name: 'العربية' },
+    { code: 'hi', name: 'हिन्दी' },
+    { code: 'th', name: 'ไทย' },
+    { code: 'vi', name: 'Tiếng Việt' },
+    { code: 'ur', name: 'اردو' },
+    { code: 'tr', name: 'Türkçe' },
+    { code: 'fa', name: 'فارسی' },
+    { code: 'he', name: 'עברית' },
+    { code: 'ga', name: 'Gaeilge' },
+    { code: 'sw', name: 'Kiswahili' },
+    { code: 'ha', name: 'Hausa' },
+    { code: 'am', name: 'አማርኛ' },
+    { code: 'eu', name: 'Euskara' },
+    { code: 'tl', name: 'Tagalog' },
+    { code: 'ca', name: 'Català' },
+    { code: 'bn', name: 'বাংলা' },
+    { code: 'mg', name: 'Malagasy' },
+    { code: 'ht', name: 'Kreyòl Ayisyen' },
+    { code: 'sr', name: 'Српски' },
+    { code: 'ms', name: 'Bahasa Melayu' },
   ];
 
   const handleSwapLanguages = () => {
@@ -30,9 +65,21 @@ export default function TranslationApp() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleSpeakText = (text: string, type: string) => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text); // 创建要朗读的文字
+      utterance.lang = type;
+      window.speechSynthesis.speak(utterance); // 开始朗读
+    } else {
+      alert('Sorry, your browser does not support text-to-speech.');
+    }
+  };
+
   const handleTranslate = async () => {
+    setIsLoading(true);
+    const API_BASE = import.meta.env.PROD ? 'https://translate.trouvaillewang.workers.dev' : '/api'
     try {
-      const res = await fetch(`/api`, {
+      const res = await fetch(API_BASE, {
         method: 'post',
         headers: {
           'Content-Type': 'application/json',
@@ -46,10 +93,23 @@ export default function TranslationApp() {
           target: targetLang
         })
       })
+
+      if (res.status !== 200) {
+        toast.error('Network Error', {
+          position: 'top-right'
+        });
+        return;
+      }
+      
       const target = await res.json()
       setTranslatedText(target.response?.translated_text || '')
+      toast.success('Translated', {
+        position: 'top-right'
+      });
     } catch (error) {
       console.error(error)
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -115,7 +175,7 @@ export default function TranslationApp() {
                   {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-gray-400" />}
                 </button>
                 <button className="p-1.5 rounded-full hover:bg-gray-100">
-                  <Volume2 className="h-4 w-4 text-gray-400" />
+                  <Volume2 className="h-4 w-4 text-gray-400" onClick={() => handleSpeakText(sourceText, sourceLang)} />
                 </button>
                 <button 
                   onClick={() => setSourceText('')}
@@ -142,7 +202,7 @@ export default function TranslationApp() {
                   <Copy className="h-4 w-4 text-gray-400" />
                 </button>
                 <button className="p-1.5 rounded-full hover:bg-gray-100">
-                  <Volume2 className="h-4 w-4 text-gray-400" />
+                  <Volume2 className="h-4 w-4 text-gray-400" onClick={() => handleSpeakText(translatedText, targetLang)} />
                 </button>
               </div>
             </div>
@@ -152,9 +212,10 @@ export default function TranslationApp() {
           <div className="mt-6 flex justify-center">
             <button
               onClick={handleTranslate}
-              disabled={!sourceText}
-              className="px-8 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              disabled={!sourceText || isLoading}
+              className="flex px-8 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
+              {isLoading && <LoaderCircle className='animate-spin mr-2' />}
               Translate
             </button>
           </div>
@@ -165,6 +226,7 @@ export default function TranslationApp() {
           Powered by Universal Translator
         </div>
       </div>
+      <Toaster />
     </div>
   );
 }
