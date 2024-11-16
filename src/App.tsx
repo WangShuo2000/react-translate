@@ -77,7 +77,7 @@ export default function TranslationApp() {
 
   const handleTranslate = async () => {
     setIsLoading(true);
-    const API_BASE = import.meta.env.PROD ? 'https://api.consve.com' : '/api'
+    const API_BASE = import.meta.env.PROD ? import.meta.env.VITE_API_BASE_URL : '/api'
     try {
       const res = await fetch(API_BASE, {
         method: 'post',
